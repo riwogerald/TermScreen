@@ -1,0 +1,13 @@
+{
+  "name": "terminal-screen-renderer",
+  "version": "1.0.0",
+  "description": "A terminal screen renderer that processes binary command streams",
+  "main": "renderer.py",
+  "scripts": {
+    "test": "python test_renderer.py",
+    "demo": "python demo.py"
+  },
+  "keywords": ["terminal", "renderer", "binary", "screen"],
+  "author": "",
+  "license": "MIT"
+}
