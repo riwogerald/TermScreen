@@ -5,9 +5,18 @@
   "main": "renderer.py",
   "scripts": {
     "test": "python test_renderer.py",
-    "demo": "python demo.py"
+    "test:performance": "python test_performance.py",
+    "test:integration": "python test_integration.py",
+    "test:all": "python run_all_tests.py",
+    "demo": "python demo.py",
+    "demo:1": "python demo.py 1 | python renderer.py",
+    "demo:2": "python demo.py 2 | python renderer.py"
   },
-  "keywords": ["terminal", "renderer", "binary", "screen"],
+  "keywords": ["terminal", "renderer", "binary", "screen", "curses"],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {},
+  "engines": {
+    "python": ">=3.6"
+  }
 }
