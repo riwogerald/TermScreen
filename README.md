@@ -6,9 +6,11 @@ A robust terminal screen renderer that processes binary command streams to displ
 
 Imagine a stream of bytes supplied to a program to render them in a screen inside a terminal. Below is the definition of the binary format used for communication between a computer and the screen:
 
-+--------------+-------------+-------------+-------------+--- ··· ---+----------------+
-| Command Byte | Length Byte | Data Byte 0 | Data Byte 1 |    ···    |  Data Byte n-1 |
-+--------------+-------------+-------------+-------------+--- ··· ---+----------------+
+```
++---------------+---------------+---------------+---------------+--- ··· ---+---------------+
+| Command Byte  | Length Byte   | Data Byte 0   | Data Byte 1   |    ···    | Data Byte n-1 |
++---------------+---------------+---------------+---------------+--- ··· ---+---------------+
+```
 
 The data format is an array of bytes, containing sections of above form, in succession. Each section begins with a command byte, specifying the type of operation to be performed on the screen, followed by a length byte, and then a sequence of data bytes, which function as arguments to the command, as specified below:
 - 0x1 - Screen setup: Defines the dimensions and colour setting of the screen. The screen must be set up before any other command is sent. Commands are ignored         if the screen hasn't been set up.
