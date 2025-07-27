@@ -201,13 +201,13 @@ class TestScreenRenderer(unittest.TestCase):
         self.assertEqual(renderer.cursor_y, 0)
         self.assertFalse(renderer.color_pairs_initialized)
     
-    @patch('curses.initscr')
-    @patch('curses.start_color')
-    @patch('curses.use_default_colors')
-    @patch('curses.noecho')
-    @patch('curses.cbreak')
-    @patch('curses.curs_set')
-    @patch('curses.has_colors')
+    @patch('renderer.curses.initscr')
+    @patch('renderer.curses.start_color')
+    @patch('renderer.curses.use_default_colors')
+    @patch('renderer.curses.noecho')
+    @patch('renderer.curses.cbreak')
+    @patch('renderer.curses.curs_set')
+    @patch('renderer.curses.has_colors')
     def test_init_screen_success(self, mock_has_colors, mock_curs_set, 
                                 mock_cbreak, mock_noecho, mock_use_default,
                                 mock_start_color, mock_initscr):
@@ -229,7 +229,7 @@ class TestScreenRenderer(unittest.TestCase):
         mock_cbreak.assert_called_once()
         mock_curs_set.assert_called_once_with(0)
     
-    @patch('curses.initscr')
+    @patch('renderer.curses.initscr')
     def test_init_screen_failure(self, mock_initscr):
         """Test screen initialization failure"""
         mock_initscr.side_effect = Exception("Curses init failed")
@@ -239,9 +239,9 @@ class TestScreenRenderer(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             renderer.init_screen()
     
-    @patch('curses.COLORS', 256)
-    @patch('curses.COLOR_PAIRS', 256)
-    @patch('curses.init_pair')
+    @patch('renderer.curses.COLORS', 256)
+    @patch('renderer.curses.COLOR_PAIRS', 256)
+    @patch('renderer.curses.init_pair')
     def test_init_color_pairs(self, mock_init_pair):
         """Test color pairs initialization"""
         self.renderer._init_color_pairs()
@@ -250,10 +250,10 @@ class TestScreenRenderer(unittest.TestCase):
         self.assertTrue(mock_init_pair.called)
         self.assertTrue(self.renderer.color_pairs_initialized)
     
-    @patch('curses.init_pair')
+    @patch('renderer.curses.init_pair')
     def test_init_color_pairs_with_errors(self, mock_init_pair):
         """Test color pairs initialization with curses errors"""
-        import curses
+        from renderer import curses
         mock_init_pair.side_effect = curses.error("Color not supported")
         
         # Should not raise exception
@@ -264,8 +264,8 @@ class TestScreenRenderer(unittest.TestCase):
         mock_screen = Mock()
         self.renderer.screen = mock_screen
         
-        with patch('curses.echo'), patch('curses.nocbreak'), \
-             patch('curses.curs_set'), patch('curses.endwin'):
+        with patch('renderer.curses.echo'), patch('renderer.curses.nocbreak'), \
+             patch('renderer.curses.curs_set'), patch('renderer.curses.endwin'):
             self.renderer.cleanup()
     
     def test_cleanup_with_none_screen(self):
@@ -298,7 +298,7 @@ class TestScreenRenderer(unittest.TestCase):
     
     def test_safe_addch_curses_error(self):
         """Test safe_addch handling curses errors"""
-        import curses
+        from renderer import curses
         self.renderer.width = 80
         self.renderer.height = 24
         self.mock_screen.addch.side_effect = curses.error("Cannot draw")
@@ -330,7 +330,7 @@ class TestScreenRenderer(unittest.TestCase):
         """Test color attribute generation"""
         self.renderer.color_pairs_initialized = True
         
-        with patch('curses.COLOR_PAIRS', 256), patch('curses.color_pair') as mock_color_pair:
+        with patch('renderer.curses.COLOR_PAIRS', 256), patch('renderer.curses.color_pair') as mock_color_pair:
             mock_color_pair.return_value = 42
             
             attr = self.renderer._get_color_attr(5)
