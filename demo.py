@@ -15,6 +15,11 @@ class BinaryCommandBuilder:
     
     def add_command(self, command: int, data: List[int]):
         """Add a command with data to the stream"""
+        # Validate that all data values are valid bytes (0-255)
+        for value in data:
+            if not isinstance(value, int) or value < 0 or value > 255:
+                raise ValueError(f"Data value {value} must be an integer between 0 and 255")
+        
         self.data.append(command)
         self.data.append(len(data))
         self.data.extend(data)
@@ -97,7 +102,7 @@ def create_demo_1() -> bytes:
     
     # Add some scattered characters
     for i in range(5):
-        builder.draw_character(20 + i * 8, 19, 9 + i, ord('♦'))
+        builder.draw_character(20 + i * 8, 19, 9 + i, ord('o'))
     
     builder.end_of_file()
     return builder.get_data()
@@ -119,23 +124,23 @@ def create_demo_2() -> bytes:
         for x in range(10, 50):
             if (x + y) % 2 == 0:
                 color = 8
-                char = ord('█')
+                char = ord('#')
             else:
                 color = 15
-                char = ord('░')
+                char = ord('.')
             builder.draw_character(x, y, color, char)
     
     # Draw border around pattern
-    builder.draw_line(9, 4, 50, 4, 12, ord('═'))
-    builder.draw_line(9, 15, 50, 15, 12, ord('═'))
-    builder.draw_line(9, 4, 9, 15, 12, ord('║'))
-    builder.draw_line(50, 4, 50, 15, 12, ord('║'))
+    builder.draw_line(9, 4, 50, 4, 12, ord('='))
+    builder.draw_line(9, 15, 50, 15, 12, ord('='))
+    builder.draw_line(9, 4, 9, 15, 12, ord('|'))
+    builder.draw_line(50, 4, 50, 15, 12, ord('|'))
     
     # Corners
-    builder.draw_character(9, 4, 12, ord('╔'))
-    builder.draw_character(50, 4, 12, ord('╗'))
-    builder.draw_character(9, 15, 12, ord('╚'))
-    builder.draw_character(50, 15, 12, ord('╝'))
+    builder.draw_character(9, 4, 12, ord('+'))
+    builder.draw_character(50, 4, 12, ord('+'))
+    builder.draw_character(9, 15, 12, ord('+'))
+    builder.draw_character(50, 15, 12, ord('+'))
     
     # Status line
     builder.render_text(15, 17, 11, "Checkerboard pattern complete")
