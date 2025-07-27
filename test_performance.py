@@ -191,8 +191,8 @@ class TestStress(unittest.TestCase):
         self.renderer.initialized = True
         self.renderer.color_pairs_initialized = True
         
-        with patch('curses.COLOR_PAIRS', 256), \
-             patch('curses.color_pair', return_value=42):
+        with patch('renderer.curses.COLOR_PAIRS', 256), \
+             patch('renderer.curses.color_pair', return_value=42):
             
             # Test all possible color values
             for color in range(256):
@@ -279,7 +279,7 @@ class TestErrorHandling(unittest.TestCase):
     
     def test_curses_error_handling(self):
         """Test handling of curses errors"""
-        import curses
+        from renderer import curses
         
         # Mock curses errors
         self.renderer.screen.addch.side_effect = curses.error("Mock error")
@@ -316,8 +316,8 @@ class TestErrorHandling(unittest.TestCase):
         """Test handling of invalid color values"""
         self.renderer.color_pairs_initialized = True
         
-        with patch('curses.COLOR_PAIRS', 16), \
-             patch('curses.color_pair', side_effect=Exception("Invalid color")):
+        with patch('renderer.curses.COLOR_PAIRS', 16), \
+             patch('renderer.curses.color_pair', side_effect=Exception("Invalid color")):
             
             # Should fallback gracefully
             attr = self.renderer._get_color_attr(999)
