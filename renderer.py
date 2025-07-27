@@ -424,6 +424,8 @@ def process_binary_stream(data: bytes) -> None:
 
 def main():
     """Main entry point"""
+    binary_data = None
+    
     if len(sys.argv) > 1:
         # Read from file
         try:
