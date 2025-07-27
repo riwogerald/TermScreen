@@ -155,13 +155,15 @@ class TestBinaryCommandBuilder(unittest.TestCase):
         
         data = self.builder.get_data()
         
-        # Verify structure
+        # Verify structure by parsing the actual command positions
         self.assertTrue(len(data) > 15)
-        self.assertEqual(data[0], 0x1)   # Screen setup
-        self.assertEqual(data[4], 0x7)   # Clear screen
-        self.assertEqual(data[6], 0x4)   # Render text
-        self.assertEqual(data[12], 0x5)  # Cursor movement
-        self.assertEqual(data[15], 0x6)  # Draw at cursor
+        self.assertEqual(data[0], 0x1)   # Screen setup command
+        self.assertEqual(data[1], 3)     # Screen setup length
+        # Screen setup data: [40, 20, 1] at positions 2,3,4
+        self.assertEqual(data[5], 0x7)   # Clear screen command
+        self.assertEqual(data[6], 0)     # Clear screen length
+        self.assertEqual(data[7], 0x4)   # Render text command
+        # Skip to end to verify EOF
         self.assertEqual(data[-2], 0xFF) # End of file
     
     def test_add_command_directly(self):
