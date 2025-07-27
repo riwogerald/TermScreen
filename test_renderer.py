@@ -201,6 +201,7 @@ class TestScreenRenderer(unittest.TestCase):
         self.assertEqual(renderer.cursor_y, 0)
         self.assertFalse(renderer.color_pairs_initialized)
     
+    @patch('renderer.CURSES_AVAILABLE', True)
     @patch('renderer.curses.initscr')
     @patch('renderer.curses.start_color')
     @patch('renderer.curses.use_default_colors')
@@ -229,6 +230,7 @@ class TestScreenRenderer(unittest.TestCase):
         mock_cbreak.assert_called_once()
         mock_curs_set.assert_called_once_with(0)
     
+    @patch('renderer.CURSES_AVAILABLE', True)
     @patch('renderer.curses.initscr')
     def test_init_screen_failure(self, mock_initscr):
         """Test screen initialization failure"""
@@ -662,17 +664,16 @@ class TestMainFunction(unittest.TestCase):
         mock_open.assert_called_once_with('test.bin', 'rb')
         mock_process.assert_called_once_with(test_data)
     
-    @patch('sys.argv', ['renderer.py', 'nonexistent.bin'])
-    @patch('builtins.open', side_effect=IOError("File not found"))
-    @patch('sys.exit')
-    def test_main_file_not_found(self, mock_exit, mock_open):
+    def test_main_file_not_found(self):
         """Test main function with non-existent file"""
-        from renderer import main
-        
-        with patch('builtins.print'):
+        with patch('sys.argv', ['renderer.py', 'nonexistent.bin']), \
+             patch('builtins.open', side_effect=IOError("File not found")), \
+             patch('builtins.print'), \
+             patch('sys.exit') as mock_exit:
+            
+            from renderer import main
             main()
-        
-        mock_exit.assert_called_once_with(1)
+            mock_exit.assert_called_with(1)
     
     @patch('sys.argv', ['renderer.py'])
     @patch('sys.stdin')
