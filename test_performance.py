@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from renderer import ScreenRenderer, process_binary_stream
 from demo import BinaryCommandBuilder
+from utils import run_test_suite_with_summary
 
 
 class TestPerformance(unittest.TestCase):
@@ -326,38 +327,13 @@ class TestErrorHandling(unittest.TestCase):
 
 def run_performance_tests():
     """Run performance and stress tests"""
-    print("Running Performance and Stress Tests...")
-    print("=" * 60)
-    
-    # Create test suite
-    loader = unittest.TestLoader()
-    suite = unittest.TestSuite()
-    
-    # Add test classes
     test_classes = [
         TestPerformance,
         TestStress,
         TestErrorHandling
     ]
     
-    for test_class in test_classes:
-        tests = loader.loadTestsFromTestCase(test_class)
-        suite.addTests(tests)
-    
-    # Run tests
-    runner = unittest.TextTestRunner(verbosity=2, buffer=True)
-    result = runner.run(suite)
-    
-    # Print summary
-    print(f"\n{'='*60}")
-    print(f"Performance Test Summary:")
-    print(f"Tests run: {result.testsRun}")
-    print(f"Failures: {len(result.failures)}")
-    print(f"Errors: {len(result.errors)}")
-    print(f"Success rate: {((result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100):.1f}%")
-    print(f"{'='*60}")
-    
-    return result.wasSuccessful()
+    return run_test_suite_with_summary(test_classes, "Performance and Stress Tests")
 
 
 if __name__ == "__main__":

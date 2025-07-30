@@ -9,6 +9,10 @@ import sys
 import os
 from typing import List, Optional, Tuple
 import traceback
+from utils import (
+    create_mock_curses, MockScreen, safe_curses_operation, 
+    validate_command_data, clamp, BatchRenderer
+)
 
 # Try to import curses, but provide fallback for WebContainer
 try:
@@ -16,93 +20,7 @@ try:
     CURSES_AVAILABLE = True
 except ImportError:
     CURSES_AVAILABLE = False
-    # Mock curses for WebContainer compatibility
-    class MockCurses:
-        COLOR_PAIRS = 256
-        COLORS = 256
-        
-        class error(Exception):
-            pass
-        
-        @staticmethod
-        def initscr():
-            return MockScreen()
-        
-        @staticmethod
-        def start_color():
-            pass
-        
-        @staticmethod
-        def use_default_colors():
-            pass
-        
-        @staticmethod
-        def noecho():
-            pass
-        
-        @staticmethod
-        def cbreak():
-            pass
-        
-        @staticmethod
-        def curs_set(x):
-            pass
-        
-        @staticmethod
-        def has_colors():
-            return True
-        
-        @staticmethod
-        def init_pair(pair, fg, bg):
-            pass
-        
-        @staticmethod
-        def color_pair(pair):
-            return 0
-        
-        @staticmethod
-        def echo():
-            pass
-        
-        @staticmethod
-        def nocbreak():
-            pass
-        
-        @staticmethod
-        def endwin():
-            pass
-    
-    class MockScreen:
-        def __init__(self):
-            self.width = 80
-            self.height = 24
-        
-        def keypad(self, enable):
-            pass
-        
-        def addch(self, y, x, char, attr=0):
-            pass
-        
-        def addstr(self, y, x, text, attr=0):
-            pass
-        
-        def clear(self):
-            pass
-        
-        def refresh(self):
-            pass
-        
-        def move(self, y, x):
-            pass
-        
-        def getch(self):
-            return ord('q')  # Simulate quit key
-        
-        def resize(self, height, width):
-            self.height = height
-            self.width = width
-    
-    curses = MockCurses()
+    curses = create_mock_curses()
 
 class ScreenRenderer:
     """Main renderer class that handles binary command processing"""
@@ -247,7 +165,7 @@ class ScreenRenderer:
     
     def _cmd_screen_setup(self, data: List[int]) -> bool:
         """Handle screen setup command"""
-        if len(data) < 3:
+        if not validate_command_data(data, 3):
             return True
             
         self.width = data[0]
@@ -258,42 +176,35 @@ class ScreenRenderer:
         if self.width <= 0 or self.height <= 0:
             return True
             
-        try:
-            # Resize screen if possible
-            if hasattr(self.screen, 'resize'):
-                self.screen.resize(self.height, self.width)
-        except:
-            pass
+        safe_curses_operation(getattr(self.screen, 'resize', lambda h, w: None), self.height, self.width)
             
         self.initialized = True
-        self.screen.refresh()
+        safe_curses_operation(self.screen.refresh)
         return True
     
     def _cmd_draw_character(self, data: List[int]) -> bool:
         """Handle draw character command"""
-        if len(data) < 4:
+        if not validate_command_data(data, 4):
             return True
             
         x, y, color, char = data[:4]
         attr = self._get_color_attr(color)
         self._safe_addch(y, x, char, attr)
-        self.screen.refresh()
         return True
     
     def _cmd_draw_line(self, data: List[int]) -> bool:
         """Handle draw line command"""
-        if len(data) < 6:
+        if not validate_command_data(data, 6):
             return True
             
         x1, y1, x2, y2, color, char = data[:6]
         attr = self._get_color_attr(color)
         self._draw_line(x1, y1, x2, y2, char, attr)
-        self.screen.refresh()
         return True
     
     def _cmd_render_text(self, data: List[int]) -> bool:
         """Handle render text command"""
-        if len(data) < 3:
+        if not validate_command_data(data, 3):
             return True
             
         x, y, color = data[:3]
@@ -301,45 +212,37 @@ class ScreenRenderer:
             text = bytes(data[3:]).decode('ascii', errors='replace')
             attr = self._get_color_attr(color)
             self._safe_addstr(y, x, text, attr)
-            self.screen.refresh()
         except:
             pass
         return True
     
     def _cmd_cursor_movement(self, data: List[int]) -> bool:
         """Handle cursor movement command"""
-        if len(data) < 2:
+        if not validate_command_data(data, 2):
             return True
             
         self.cursor_x, self.cursor_y = data[:2]
         # Clamp cursor to screen bounds
-        self.cursor_x = max(0, min(self.cursor_x, self.width - 1))
-        self.cursor_y = max(0, min(self.cursor_y, self.height - 1))
+        self.cursor_x = clamp(self.cursor_x, 0, self.width - 1)
+        self.cursor_y = clamp(self.cursor_y, 0, self.height - 1)
         
-        try:
-            self.screen.move(self.cursor_y, self.cursor_x)
-        except:
-            pass
+        safe_curses_operation(self.screen.move, self.cursor_y, self.cursor_x)
         return True
     
     def _cmd_draw_at_cursor(self, data: List[int]) -> bool:
         """Handle draw at cursor command"""
-        if len(data) < 2:
+        if not validate_command_data(data, 2):
             return True
             
         char, color = data[:2]
         attr = self._get_color_attr(color)
         self._safe_addch(self.cursor_y, self.cursor_x, char, attr)
-        self.screen.refresh()
         return True
     
     def _cmd_clear_screen(self, data: List[int]) -> bool:
         """Handle clear screen command"""
-        try:
-            self.screen.clear()
-            self.screen.refresh()
-        except:
-            pass
+        safe_curses_operation(self.screen.clear)
+        safe_curses_operation(self.screen.refresh)
         return True
     
     def _draw_line(self, x1: int, y1: int, x2: int, y2: int, char: int, attr: int):
@@ -373,7 +276,7 @@ class ScreenRenderer:
 
 
 def process_binary_stream(data: bytes) -> None:
-    """Process binary stream and render to screen"""
+    """Process binary stream and render to screen with batched rendering"""
     renderer = ScreenRenderer()
     
     # WebContainer-compatible signal handling
@@ -385,28 +288,34 @@ def process_binary_stream(data: bytes) -> None:
         renderer.init_screen()
         i = 0
         
-        while i < len(data):
-            if i + 1 >= len(data):
-                break
+        # Use batched rendering to reduce refresh calls
+        with BatchRenderer(renderer.screen) as batch:
+            while i < len(data):
+                if i + 1 >= len(data):
+                    break
+                    
+                command = data[i]
+                length = data[i + 1]
                 
-            command = data[i]
-            length = data[i + 1]
-            
-            # Validate length to prevent buffer overflow
-            if i + 2 + length > len(data):
-                break
+                # Validate length to prevent buffer overflow
+                if i + 2 + length > len(data):
+                    break
+                    
+                command_data = list(data[i + 2:i + 2 + length])
+                i += 2 + length
                 
-            command_data = list(data[i + 2:i + 2 + length])
-            i += 2 + length
-            
-            if not renderer.process_command(command, length, command_data):
-                break
+                if not renderer.process_command(command, length, command_data):
+                    break
+                
+                # Mark screen as dirty for batched refresh
+                if command in [0x1, 0x2, 0x3, 0x4, 0x6, 0x7]:  # Commands that modify display
+                    batch.mark_dirty()
         
         # Wait for user input before exiting (skip in WebContainer)
         if CURSES_AVAILABLE:
-            renderer.screen.addstr(renderer.height - 1, 0, "Press any key to exit...")
-            renderer.screen.refresh()
-            renderer.screen.getch()
+            safe_curses_operation(renderer.screen.addstr, renderer.height - 1, 0, "Press any key to exit...")
+            safe_curses_operation(renderer.screen.refresh)
+            safe_curses_operation(renderer.screen.getch)
         else:
             print("Rendering complete (WebContainer mode)")
         

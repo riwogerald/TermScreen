@@ -7,6 +7,8 @@ Compatible with WebContainer Python environment
 import sys
 import os
 import time
+from utils import preserve_sys_state
+
 
 def run_test_suite(test_file, description):
     """Run a single test suite and return success status"""
@@ -17,53 +19,43 @@ def run_test_suite(test_file, description):
     start_time = time.time()
     
     try:
-        # Import and run the test module directly instead of using subprocess
-        # This avoids the signal/subprocess issues in WebContainer
-        
-        # Save current sys.path and argv
-        original_path = sys.path[:]
-        original_argv = sys.argv[:]
-        
-        # Set up environment for test
-        sys.argv = [test_file]
-        
-        # Import the test module
-        test_module_name = test_file.replace('.py', '')
-        
-        # Remove from sys.modules if already imported to force reload
-        if test_module_name in sys.modules:
-            del sys.modules[test_module_name]
-        
-        # Import and run the test
-        test_module = __import__(test_module_name)
-        
-        # Look for main function or run tests directly
-        if hasattr(test_module, 'main'):
-            result = test_module.main()
-            success = result == 0 if result is not None else True
-        elif hasattr(test_module, 'run_tests'):
-            success = test_module.run_tests()
-        elif hasattr(test_module, 'run_performance_tests'):
-            success = test_module.run_performance_tests()
-        elif hasattr(test_module, 'run_integration_tests'):
-            success = test_module.run_integration_tests()
-        else:
-            # Try to run unittest if no specific function found
-            import unittest
-            loader = unittest.TestLoader()
-            suite = loader.loadTestsFromModule(test_module)
-            runner = unittest.TextTestRunner(verbosity=1, stream=sys.stdout)
-            result = runner.run(suite)
-            success = result.wasSuccessful()
+        with preserve_sys_state():
+            # Set up environment for test
+            sys.argv = [test_file]
+            
+            # Import the test module
+            test_module_name = test_file.replace('.py', '')
+            
+            # Remove from sys.modules if already imported to force reload
+            if test_module_name in sys.modules:
+                del sys.modules[test_module_name]
+            
+            # Import and run the test
+            test_module = __import__(test_module_name)
+            
+            # Look for main function or run tests directly
+            if hasattr(test_module, 'main'):
+                result = test_module.main()
+                success = result == 0 if result is not None else True
+            elif hasattr(test_module, 'run_tests'):
+                success = test_module.run_tests()
+            elif hasattr(test_module, 'run_performance_tests'):
+                success = test_module.run_performance_tests()
+            elif hasattr(test_module, 'run_integration_tests'):
+                success = test_module.run_integration_tests()
+            else:
+                # Try to run unittest if no specific function found
+                import unittest
+                loader = unittest.TestLoader()
+                suite = loader.loadTestsFromModule(test_module)
+                runner = unittest.TextTestRunner(verbosity=1, stream=sys.stdout)
+                result = runner.run(suite)
+                success = result.wasSuccessful()
         
         end_time = time.time()
         duration = end_time - start_time
         
         print(f"\n{description} {'PASSED' if success else 'FAILED'} in {duration:.2f}s")
-        
-        # Restore original sys state
-        sys.path[:] = original_path
-        sys.argv[:] = original_argv
         
         return success, duration
         
@@ -71,10 +63,6 @@ def run_test_suite(test_file, description):
         end_time = time.time()
         duration = end_time - start_time
         print(f"\n{description} ERROR: {e}")
-        
-        # Restore original sys state
-        sys.path[:] = original_path
-        sys.argv[:] = original_argv
         
         return False, duration
 
