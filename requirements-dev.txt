@@ -1,0 +1,8 @@
+# Development dependencies for Terminal Screen Renderer
+pytest>=6.0
+pytest-cov>=2.0
+black>=21.0
+flake8>=3.8
+mypy>=0.800
+coverage>=5.0
+tox>=3.20

@@ -1,0 +1,10 @@
+# Terminal Screen Renderer Dependencies
+# No external dependencies required for core functionality
+# The renderer uses only Python standard library
+
+# Development dependencies (install with: pip install -r requirements-dev.txt)
+# pytest>=6.0
+# pytest-cov>=2.0
+# black>=21.0
+# flake8>=3.8
+# mypy>=0.800

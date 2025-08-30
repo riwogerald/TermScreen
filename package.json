@@ -10,7 +10,17 @@
     "test:all": "python run_all_tests.py",
     "demo": "python demo.py",
     "demo:1": "python demo.py 1 | python renderer.py",
-    "demo:2": "python demo.py 2 | python renderer.py"
+    "demo:2": "python demo.py 2 | python renderer.py",
+    "showcase:sine": "python showcase_demos.py sine | python renderer.py",
+    "showcase:mandelbrot": "python showcase_demos.py mandelbrot | python renderer.py",
+    "showcase:gameoflife": "python showcase_demos.py gameoflife | python renderer.py",
+    "showcase:dataviz": "python showcase_demos.py dataviz | python renderer.py",
+    "showcase:ascii": "python showcase_demos.py ascii | python renderer.py",
+    "benchmark": "python benchmark.py",
+    "benchmark:profile": "python benchmark.py --profile",
+    "format": "black *.py --line-length 100",
+    "lint": "flake8 *.py --max-line-length=100",
+    "build": "python setup.py sdist bdist_wheel"
   },
   "keywords": ["terminal", "renderer", "binary", "screen", "curses"],
   "author": "",

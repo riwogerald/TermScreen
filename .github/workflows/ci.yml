@@ -1,0 +1,132 @@
+name: Terminal Screen Renderer CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest, windows-latest]
+        python-version: [3.6, 3.7, 3.8, 3.9, '3.10', '3.11']
+        exclude:
+          # Exclude some combinations to reduce CI time
+          - os: macOS-latest
+            python-version: 3.6
+          - os: windows-latest
+            python-version: 3.6
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+        pip install -e .
+    
+    - name: Lint with flake8
+      run: |
+        flake8 *.py --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 *.py --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
+    
+    - name: Type checking with mypy
+      run: |
+        mypy *.py --ignore-missing-imports || true  # Don't fail on type errors for now
+    
+    - name: Test with unittest
+      run: |
+        python run_all_tests.py
+    
+    - name: Run performance benchmarks
+      run: |
+        python benchmark.py --profile
+    
+    - name: Test demo generation
+      run: |
+        python demo.py 1 > demo1.bin
+        python demo.py 2 > demo2.bin
+        python showcase_demos.py mandelbrot > mandelbrot.bin
+        ls -la *.bin
+    
+    - name: Generate coverage report
+      run: |
+        coverage run --source=. -m unittest discover -s . -p "test_*.py"
+        coverage xml
+    
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Build package
+      run: |
+        python -m build
+    
+    - name: Check package
+      run: |
+        twine check dist/*
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist/
+
+  docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+    
+    - name: Generate demo screenshots (text-based)
+      run: |
+        mkdir -p docs/screenshots
+        python showcase_demos.py mandelbrot > docs/screenshots/mandelbrot.bin
+        python showcase_demos.py dataviz > docs/screenshots/dataviz.bin
+        python showcase_demos.py ascii > docs/screenshots/ascii.bin
+        
+    - name: Upload documentation artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: docs
+        path: docs/
